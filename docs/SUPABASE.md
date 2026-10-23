@@ -37,6 +37,14 @@ En desarrollo, `APP_URL=http://127.0.0.1:5173`. Se exige HTTPS fuera de loopback
 
 El servidor no cae automáticamente al login de ChatGPT ni a D1 si faltan credenciales de Supabase: muestra el acceso pendiente de configuración y mantiene bloqueados los datos. El modo anterior sigue disponible únicamente si se establece explícitamente `APP_BACKEND=sites`.
 
+### Proyecto seleccionado y conexión PostgreSQL
+
+Las plantillas apuntan al proyecto `fdfgglmknbmcbjuxuwoq`, cuya URL API es `https://fdfgglmknbmcbjuxuwoq.supabase.co`. Puedes cambiarla cuando necesites otro proyecto.
+
+La conexión directa proporcionada es `db.fdfgglmknbmcbjuxuwoq.supabase.co:5432`, base `postgres`, usuario `postgres`. `.env.example` documenta esas variables `PG*`, con una contraseña de ejemplo y `PGSSLMODE=verify-full` para exigir TLS y verificar el certificado. La contraseña real se conserva únicamente en `.env.local`, que no se sube al repositorio ni a los paquetes de entrega.
+
+Estas variables directas sirven para herramientas PostgreSQL externas; el runtime web mantiene la conexión por API y no utiliza un controlador TCP. La contraseña de PostgreSQL no sustituye a `SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SECRET_KEY`. Ambas claves siguen pendientes en la configuración local; hasta completarlas no se ha establecido una conexión autenticada desde la app. Este cambio no aplica migraciones ni modifica la base remota.
+
 ## 4. Ejecutar y verificar
 
 ```sh
