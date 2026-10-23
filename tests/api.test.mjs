@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict';
+const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:5173';
+if (!/^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(base)) throw new Error('Integration tests only run against local preview.');
+let assertions = 0;
+const check = (v, msg) => { assert.ok(v, msg); assertions++; };
+const signIn = await fetch(base + '/signin-with-chatgpt?return_to=/', { redirect: 'manual' });
+const cookie = signIn.headers.get('set-cookie').split(';')[0];
+async function read() { const r = await fetch(base + '/api/shop', { headers: { cookie } }); assert.equal(r.status,200); return r.json(); }
+async function send(kind,payload,id=crypto.randomUUID(),origin=base) {
+  const r=await fetch(base+'/api/shop',{method:'POST',headers:{cookie,origin,'Content-Type':'application/json'},body:JSON.stringify({id,kind,payload})});
+  const text=await r.text(); let data; try { data=JSON.parse(text); } catch { data={error:text}; }
+  return { status:r.status, ...data };
+}
+check((await fetch(base+'/api/shop')).status === 401, 'anonymous reads denied');
+check((await fetch(base+'/api/shop',{method:'POST',headers:{origin:base,'Content-Type':'application/json'},body:'{}'})).status === 401,'anonymous writes denied');
+check((await send('client.save',{name:'Blocked'},undefined,'https://other.example')).status === 403,'cross-site writes denied');
+const clientResponse=await send('client.save',{name:'Prueba API '+Date.now(),phone:'',notes:'Solo entorno local'});
+check(clientResponse.status===200,'client creation persisted');
+const clientId=clientResponse.shop.clients.at(-1).id;
+let r=await send('variant.create',{name:'Prenda API '+Date.now(),size:'Única',color:'Azul',price:10000,stock:2});
+check(r.status===200,'variant creation persisted');
+const variantId=r.shop.variants.at(-1).id;
+const orderPayload={clientId,lines:[{variantId,quantity:2}],paymentMode:'later',method:'transfer',dueDate:'2099-01-01'};
+const concurrent=await Promise.all([send('order.create',orderPayload),send('order.create',orderPayload)]);
+check(concurrent.every(r=>r.status===200),'concurrent requests both complete via version retry');
+let state=await read();
+let orders=state.shop.orders.filter(o=>o.clientId===clientId);
+check(orders.length===2,'neither concurrent order is lost');
+check(orders.reduce((s,o)=>s+o.lines[0].reserved,0)===2,'concurrent reservations never oversell');
+const ready=orders.find(o=>o.lines[0].reserved===2),missing=orders.find(o=>o.lines[0].reserved===0);
+check((await send('order.deliver',{orderId:missing.id})).status===400,'incomplete delivery denied by server');
+const deliveryKey=crypto.randomUUID();
+const deliveries=await Promise.all([send('order.deliver',{orderId:ready.id},deliveryKey),send('order.deliver',{orderId:ready.id},deliveryKey)]);
+check(deliveries.every(r=>r.status===200),'same delivery command may safely retry');
+check((await send('order.deliver',{orderId:ready.id})).status===400,'second delivery denied');
+state=await read();check(state.shop.variants.find(v=>v.id===variantId).stock===0,'delivery decremented stock once');
+const payments=await Promise.all([send('payment.record',{orderId:ready.id,method:'cash'}),send('payment.record',{orderId:ready.id,method:'transfer'})]);
+check(payments.filter(r=>r.status===200).length===1&&payments.filter(r=>r.status===400).length===1,'concurrent payments record once');
+const key=crypto.randomUUID();
+await send('supply.create',{orderId:missing.id,variantId,quantity:2},key);
+r=await send('supply.create',{orderId:missing.id,variantId,quantity:2},key);
+check(r.status===200&&r.shop.supplies.filter(s=>s.orderId===missing.id).length===1,'supply creation retries are idempotent');
+const supplyId=r.shop.supplies.find(s=>s.orderId===missing.id).id;
+r=await send('supply.receive',{supplyId,quantity:2});check(r.status===200&&r.shop.orders.find(o=>o.id===missing.id).lines[0].reserved===2,'received supply allocated to order');
+r=await send('payment.reschedule',{orderId:missing.id,dueDate:'2099-02-01'});check(r.status===200&&r.shop.orders.find(o=>o.id===missing.id).dueHistory.length===1,'reschedule history persisted');
+r=await send('payment.record',{orderId:missing.id,method:'transfer',reference:'Comprobante de prueba'});check(r.status===200,'pre-delivery transfer registered');
+r=await send('order.deliver',{orderId:missing.id});check(r.status===200,'paid complete order delivered');
+const fresh=await read();check(fresh.shop.orders.find(o=>o.id===missing.id).status==='delivered'&&fresh.shop.orders.find(o=>o.id===missing.id).paidAt,'fresh client sees persistent payment and delivery');
+const manifest=await fetch(base+'/manifest.webmanifest');check(manifest.status===200&&(await manifest.json()).display==='standalone','PWA standalone manifest available');
+for(const asset of ['/icons/icon-192.png','/icons/icon-512.png','/icons/maskable-512.png','/icons/apple-touch-icon.png','/sw.js']) check((await fetch(base+asset)).status===200,asset+' available');
+console.log(`${assertions} integration checks passed (local only).`);

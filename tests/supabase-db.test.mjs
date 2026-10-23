@@ -1,0 +1,15 @@
+import { test, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { createDatabase,asRole,ownerA,ownerB,blank } from './helpers/postgres.mjs';
+const db=await createDatabase();
+after(()=>db.close());
+await db.query('insert into public.shops(owner,data) values ($1,$2),($3,$2)',[ownerA,blank,ownerB]);
+test('Postgres migration enables and forces RLS',async()=>{const r=await db.query("select relrowsecurity,relforcerowsecurity from pg_class where oid='public.shops'::regclass");assert.deepEqual(r.rows[0],{relrowsecurity:true,relforcerowsecurity:true});});
+test('anonymous role cannot read or write business data',async()=>{for(const sql of ['select * from public.shops',`update public.shops set version=2`,`delete from public.shops`])await assert.rejects(asRole(db,'anon','',sql),e=>e.code==='42501');});
+test('each authenticated user can only read their own document',async()=>{for(const id of [ownerA,ownerB]){const r=await asRole(db,'authenticated',id,'select owner from public.shops');assert.deepEqual(r.rows,[{owner:id}]);}assert.equal((await asRole(db,'authenticated',ownerB,'select * from public.shops where owner=$1',[ownerA])).rows.length,0);});
+test('logged-in users cannot bypass server business validation through direct writes',async()=>{for(const sql of [`update public.shops set version=2 where owner='${ownerA}'`,`delete from public.shops where owner='${ownerA}'`,`insert into public.shops(owner,data) values ('${ownerA}','{}')`])await assert.rejects(asRole(db,'authenticated',ownerA,sql),e=>e.code==='42501');});
+test('version comparison prevents lost updates and only advances once',async()=>{const write=()=>asRole(db,'service_role','',`update public.shops set version=version+1 where owner=$1 and version=1 returning version`,[ownerA]);const a=await write(),b=await write();assert.equal(a.rows[0].version,2);assert.equal(b.rows.length,0);});
+test('version cannot be skipped or reduced',async()=>{await assert.rejects(asRole(db,'service_role','',`update public.shops set version=8 where owner=$1`,[ownerA]),e=>e.code==='23514');});
+test('owner is immutable',async()=>{await assert.rejects(asRole(db,'service_role','',`update public.shops set owner=$2,version=version+1 where owner=$1`,[ownerA,ownerB]),e=>e.code==='23514');});
+test('invalid document is rejected atomically',async()=>{await assert.rejects(asRole(db,'service_role','',`update public.shops set data='{}',version=version+1 where owner=$1`,[ownerA]),e=>e.code==='23514');const r=await asRole(db,'authenticated',ownerA,'select data,version from public.shops');assert.deepEqual(r.rows[0].data,blank);assert.equal(r.rows[0].version,2);});
+test('shop must belong to a real auth user',async()=>{await assert.rejects(asRole(db,'service_role','',`insert into public.shops(owner,data) values ($1,$2)`,['33333333-3333-4333-8333-333333333333',blank]),e=>e.code==='23503');});

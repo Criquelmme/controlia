@@ -1,62 +1,53 @@
-# Hilo · Mi tienda
+# Controlia · Hilo, mi tienda
 
-Aplicación privada para una tienda de ropa, en español y CLP. Incluye inventario por talla y color, clientes, pedidos, reservas, encargos, entregas completas y un pago por venta en efectivo o transferencia. Se puede instalar como PWA desde el navegador.
+Web privada y PWA para administrar una tienda de ropa, en español y pesos chilenos. Usa **Supabase Auth con correo y contraseña** y **PostgreSQL**. La interfaz se adapta al celular y al computador.
 
-**Estado:** implementación y pruebas locales completas; publicación pendiente por un bloqueo de aprobación del entorno al sincronizar la fuente. No hay URL de producción confirmada. Conserva el identificador existente de `.openai/hosting.json` para retomar la publicación sin crear otro sitio.
+## Funciones
 
-## Uso
+- Inventario por prenda, talla y color, con entradas, ajustes y movimientos.
+- Clientes e historial de pedidos y pagos.
+- Pedidos con reservas, prendas faltantes y encargadas.
+- Recepción de encargos y entrega completa cuando todas las prendas están disponibles.
+- Un pago por venta, en efectivo o transferencia, inmediato o posterior con fecha ajustable e historial.
+- Estados de entrega y pago independientes; protección contra operaciones duplicadas y cambios concurrentes.
+- Login obligatorio, cookies HttpOnly y Secure en HTTPS, API autenticada, aislamiento por propietario y respuestas privadas sin caché.
+- Instalación desde Chrome/Edge o Safari como PWA. Requiere conexión para consultar y guardar.
 
-1. Agrega las variantes de prendas en **Inventario** con precio y unidades iniciales.
-2. Registra a tus clientes en **Clientes**.
-3. Crea un **Pedido**. Las unidades disponibles se reservan; el resto queda como faltante.
-4. En el detalle del pedido, usa **Encargar faltantes**. Desde **Encargos**, registra su recepción.
-5. Cuando estén todas las prendas, confirma **Entregar pedido**. Se descuenta el inventario físico.
-6. Confirma **Registrar pago** solo cuando recibas el total. Puedes hacerlo antes o después de entregar. Los pagos posteriores admiten cambios de fecha con historial.
+## Configurar Supabase
 
-La web y la app instalada comparten los datos del mismo usuario de ChatGPT. Las vistas se actualizan al volver a la aplicación, cada 30 segundos mientras está visible y con el botón Actualizar.
+1. Aplica el [SQL de la base de datos](supabase/migrations/20261023000100_initial_shop.sql) en un proyecto Supabase nuevo.
+2. Desactiva los registros públicos y crea tu usuario en Authentication del Dashboard.
+3. Copia `.dev.vars.example` a `.dev.vars` y completa URL, claves y origen de la app. Los archivos reales no se suben a Git.
+4. Ejecuta `npm ci` y `npm run dev` con Node.js >=22.13.
 
-### Acceso privado
+La guía completa está en **[docs/SUPABASE.md](docs/SUPABASE.md)**. Incluye las opciones del Dashboard, desarrollo local, variables del servidor y despliegue. La aplicación queda bloqueada si no tiene la configuración de acceso; no usa un proveedor alternativo automáticamente.
 
-La ruta `/login` presenta el inicio de sesión con ChatGPT. Sin autenticación, `/` redirige a esa pantalla y la API responde 401 sin datos de la tienda. No se reciben ni guardan contraseñas en Hilo. Al detectar una sesión vencida se retiran los datos cargados y se cierran los formularios. Al volver desde otra pestaña o desde el historial se verifica nuevamente la sesión antes de mostrar la tienda.
+## Esquema de datos
 
-Las páginas y respuestas de negocio llevan `Cache-Control: private, no-store`; el service worker no guarda datos privados. El Worker de producción redirige HTTP a HTTPS y envía HSTS en respuestas HTTPS. Esto protege el acceso en tránsito cuando esté publicado; la vista previa local permite HTTP en la dirección de loopback. No se añadió cifrado propio de la base de datos ni un sistema de contraseñas independiente.
+`public.shops` contiene una fila por usuario de `auth.users`: `owner uuid`, `version integer`, `data jsonb`, `updated_at timestamptz`.
 
-### Instalar en el celular
+`data` guarda los registros de `clients`, `variants`, `orders` (con líneas y pago único), `supplies`, `movements` y `operations`. El documento se actualiza atómicamente con comparación de versión. [Ver campos, relaciones y reglas de acceso](docs/DATABASE.md).
 
-- Android: abre el sitio en Chrome y usa **Instalar aplicación** en Hilo o en el menú del navegador.
-- iPhone: abre el sitio en Safari, toca **Compartir → Agregar a pantalla de inicio**.
+RLS permite al usuario leer únicamente su tienda. Los clientes no tienen permisos SQL para modificarla directamente: la API verifica sesión y reglas de negocio antes de escribir con una clave exclusivamente del servidor.
 
-Se requiere conexión para consultar datos actualizados o registrar operaciones. No se guardan datos de negocio en almacenamiento local ni se envían operaciones en segundo plano sin conexión.
-
-## Desarrollo
-
-Requiere Node.js >=22.13. El proyecto usa el starter Vinext de Sites y Cloudflare D1. La autenticación de producción pertenece a Sites; el simulador de inicio de sesión es solo para desarrollo local.
+## Pruebas
 
 ```sh
-npm run install:ci
-npm run db:generate
+npm test
+npm run typecheck
 npm run build
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_amusing_machine_man.sql
-npm run dev
 ```
 
-Aplica la migración una sola vez en una base de datos local nueva. Las migraciones alojadas se aplican al publicar mediante Sites.
+Las [instrucciones de integración](docs/TESTING.md) permiten comprobar login, sesión, API y PostgreSQL con un entorno local desechable, sin credenciales reales. Estas pruebas no sustituyen la verificación contra tu proyecto alojado.
 
-```sh
-node --test tests/domain.test.mjs
-node node_modules/typescript/bin/tsc --noEmit
-node tests/api.test.mjs
-node tests/auth.test.mjs
-```
+## Uso diario
 
-La última prueba requiere la vista previa local en el puerto 5173 y crea datos exclusivamente locales. Rechaza URLs externas. Los datos locales de prueba no se incluyen en la publicación.
+Agrega prendas y clientes, crea el pedido, encarga sus faltantes y registra su recepción. Confirma la entrega cuando esté completo y registra el pago cuando recibas el total. Si el cliente pagará después, ajusta la fecha desde el detalle o Cobros.
 
-## Persistencia y concurrencia
+Para instalar en Android usa «Instalar aplicación» en Chrome; en iPhone usa Safari → Compartir → Agregar a pantalla de inicio. Ambas vistas comparten la cuenta y los datos.
 
-La tabla `shops` guarda un documento de tienda por ID de usuario, con versión. Cada operación valida y aplica juntas las modificaciones a pedidos, reservas, stock, movimientos y pagos. La escritura compara la versión y reintenta con datos recientes si hay concurrencia; una clave de operación hace seguros los reintentos. No existe una secuencia de escrituras parciales entre entidades. Este diseño está orientado a una tienda pequeña, con una administradora; para historiales grandes se deberá migrar a tablas de entidades y paginación.
+## Estado y límites
 
-El servidor verifica la identidad en cada solicitud y delimita los datos por propietario. Las mutaciones aceptan JSON del mismo origen. Los datos y respuestas de negocio no se cachean. Las unidades recibidas desde un encargo se reservan primero para su pedido; las entradas generales se asignan al pedido pendiente más antiguo.
+El código y las configuraciones están preparados; para usar una instancia alojada se requiere configurar un proyecto Supabase real y desplegar el Worker Vinext/Cloudflare. Subir el repositorio a GitHub no publica por sí solo la aplicación.
 
-## Límites de esta versión
-
-Sin abonos, entregas parciales, facturación tributaria, devoluciones, conexión bancaria o administración completa de proveedores. No se cancela un pedido pagado porque no existe un flujo de devolución. La entrega conserva su detalle sin edición. La instalación física en Android e iPhone debe verificarse desde esos dispositivos.
+No incluye abonos, entregas parciales, facturación tributaria, devoluciones, conexión bancaria, registro público ni recuperación de contraseña desde la app. Los usuarios iniciales se administran en Supabase. El adaptador anterior de D1/ChatGPT se conserva solo como modo explícito `APP_BACKEND=sites`, sin migración automática de datos. La documentación del starter está en [docs/STARTER.md](docs/STARTER.md).

@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+const base=process.env.TEST_BASE_URL||'http://127.0.0.1:5173';
+if(!/^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(base))throw new Error('Local tests only.');
+let count=0;
+const check=(value,message)=>{assert.ok(value,message);count++;};
+const root=await fetch(base+'/',{redirect:'manual'});
+check(root.status===307&&root.headers.get('location')==='/login','home requires login');
+const login=await fetch(base+'/login');const html=await login.text();
+check(login.status===200,'login is available');
+check(html.includes('Iniciar sesión con ChatGPT'),'login provides platform sign-in');
+for(const text of ['ADMINISTRACIÓN','Por cobrar','Prendas faltantes','Cliente de prueba local','Mi tienda Administradora'])check(!html.includes(text),'no private UI: '+text);
+check(login.headers.get('cache-control')?.includes('no-store'),'login is not cached');
+check(login.headers.get('x-content-type-options')==='nosniff','security headers configured');
+check(login.headers.get('referrer-policy')==='same-origin','referrers restricted');
+for(const method of ['GET','POST']){const r=await fetch(base+'/api/shop',{method,...(method==='POST'?{headers:{origin:base,'Content-Type':'application/json'},body:'{}'}:{})});check(r.status===401,method+' API denies anonymous access');check(r.headers.get('cache-control')?.includes('no-store'),'API no-store');const body=await r.json();check(!body.shop&&!body.clients&&!body.orders,'no records in unauthorized response');}
+const signIn=await fetch(base+'/signin-with-chatgpt?return_to=/',{redirect:'manual'});const cookie=signIn.headers.get('set-cookie').split(';')[0];
+const authenticated=await fetch(base+'/',{headers:{cookie}});check(authenticated.status===200,'authenticated home accessible');check(authenticated.headers.get('cache-control')?.includes('no-store'),'authenticated HTML not cached');
+const signedLogin=await fetch(base+'/login',{headers:{cookie},redirect:'manual'});check(signedLogin.status===307&&signedLogin.headers.get('location')==='/','authenticated login redirects to store');
+const logout=await fetch(base+'/signout-with-chatgpt?return_to=/',{headers:{cookie},redirect:'manual'});check(logout.headers.get('set-cookie')?.includes('Max-Age=0'),'logout expires session');
+const afterLogout=await fetch(base+'/',{redirect:'manual'});check(afterLogout.status===307&&afterLogout.headers.get('location')==='/login','after logout no store content');
+const rsc=await fetch(base+'/',{headers:{RSC:'1'},redirect:'manual'});const rscBody=await rsc.text();check(!rscBody.includes('Cliente de prueba local')&&!rscBody.includes('ADMINISTRACIÓN'),'RSC cannot expose private records anonymously');
+console.log(`${count} access-control checks passed.`);
