@@ -64,7 +64,11 @@ npm run build
 
 ## 5. Despliegue
 
-El proyecto mantiene el runtime Vinext/Cloudflare del starter. Configura las cinco variables anteriores en el entorno de ejecución del Worker o del hosting compatible antes de publicar. El repositorio GitHub por sí solo no aloja la aplicación.
+En Vercel, el archivo `vercel.json` selecciona Next.js, ejecuta `npx next build --webpack` y publica `.next`. Usa Node.js 22.x y configura las cinco variables del servidor de la sección 3 en Vercel → Settings → Environment Variables. Para producción, `APP_URL` debe ser el origen HTTPS del dominio definitivo y coincidir con Site URL en Supabase. Guarda las variables y vuelve a desplegar para aplicarlas.
+
+Los valores `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER` y `PGPASSWORD` de `.env.local` son para administración PostgreSQL. Este archivo está excluido de Git y no se transfiere a Vercel mediante un push. La contraseña de PostgreSQL no habilita por sí sola el login ni las operaciones de la API web: configura también `SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SECRET_KEY` como variables privadas del servidor.
+
+El runtime Vinext/Cloudflare del starter sigue disponible para ese entorno. El repositorio GitHub por sí solo no aloja la aplicación.
 
 Si se publica mediante un Site que conserva acceso privado de ChatGPT, la plataforma seguirá pidiendo ese acceso además del login interno de Supabase. Para distribuir la app con únicamente correo y contraseña, usa un despliegue de este Worker fuera de esa puerta privada o solicita explícitamente cambiar la audiencia de ese Site. El código no cambia permisos de publicación por su cuenta.
 
