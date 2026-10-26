@@ -1,9 +1,15 @@
 import sharp from 'sharp';
-import { mkdir, writeFile } from 'node:fs/promises';
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="115" fill="#3d5d49"/><text x="256" y="375" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-size="340" fill="#fffef7">c</text><circle cx="386" cy="363" r="20" fill="#e4b79e"/></svg>`;
+import { mkdir } from 'node:fs/promises';
 await mkdir('public/icons', { recursive: true });
-await writeFile('public/favicon.svg', svg);
-for (const [size, name] of [[192,'icon-192'],[512,'icon-512'],[180,'apple-touch-icon'],[512,'maskable-512']]) {
-  const source = name.startsWith('maskable') ? svg.replace('rx="115"', 'rx="0"') : svg;
-  await sharp(Buffer.from(source)).resize(size,size).png().toFile(`public/icons/${name}.png`);
+async function createIcon(size, name, padding) {
+  const background = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><rect width="${size}" height="${size}" rx="${Math.round(size * 0.22)}" fill="#f6f5f1"/></svg>`);
+  const innerSize = Math.round(size * (1 - padding * 2));
+  const mark = await sharp('public/brand/controlia-mark.png').resize(innerSize, innerSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
+  const offset = Math.round(padding * size);
+  await sharp(background).composite([{ input: mark, left: offset, top: offset }]).png().toFile(name);
 }
+await createIcon(32, 'public/favicon.png', 0.1);
+await createIcon(192, 'public/icons/icon-192.png', 0.12);
+await createIcon(512, 'public/icons/icon-512.png', 0.12);
+await createIcon(180, 'public/icons/apple-touch-icon.png', 0.12);
+await createIcon(512, 'public/icons/maskable-512.png', 0.23);

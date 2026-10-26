@@ -1,4 +1,4 @@
-export type Client = { id: string; name: string; phone: string; notes: string };
+export type Client = { id: string; name: string; phone: string; notes: string; createdAt?: string };
 export type Variant = { id: string; name: string; size: string; color: string; price: number; stock: number; purchasePrice?: number; profitPercent?: number };
 export type Line = { variantId: string; name: string; size: string; color: string; price: number; quantity: number; reserved: number; delivered?: number };
 export type Delivery = { id: string; at: string; lines: { variantId: string; quantity: number }[] };
@@ -71,7 +71,7 @@ export function applyCommand(input: Shop, cmd: Command, at = new Date().toISOStr
     case 'client.save': {
       const existing = p.clientId ? shop.clients.find(c => c.id === p.clientId) ?? fail('El cliente no existe.') : null;
       const data = { name: str(p.name, 'Nombre', true, 100), phone: str(p.phone ?? '', 'Teléfono', false, 50), notes: str(p.notes ?? '', 'Observaciones', false, 1000) };
-      if (existing) Object.assign(existing, data); else shop.clients.push({ id: crypto.randomUUID(), ...data });
+      if (existing) Object.assign(existing, data); else shop.clients.push({ id: crypto.randomUUID(), ...data, createdAt: at });
       break;
     }
     case 'variant.create': {

@@ -19,7 +19,7 @@ RLS permite a un usuario autenticado leer únicamente la fila cuyo `owner` coinc
 
 | Colección / registro | Campos |
 |---|---|
-| `clients[]` | `id`, `name`, `phone`, `notes` |
+| `clients[]` | `id`, `name`, `phone`, `notes`, `createdAt?` |
 | `variants[]` | `id`, `name`, `size`, `color`, `price`, `stock`, `purchasePrice?`, `profitPercent?` |
 | `orders[]` | `id`, `number`, `clientId`, `lines`, `total`, `notes`, `createdAt`, `status`, `deliveredAt?`, `deliveries?`, `cancelledAt?`, `paymentMode`, `method`, `dueDate`, `paidAt?`, `paymentMethod?`, `paymentReference?`, `dueHistory`, `refunds?` |
 | `orders[].lines[]` | `variantId`, `name`, `size`, `color`, `price`, `quantity`, `reserved`, `delivered?` |

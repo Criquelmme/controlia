@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'Controlia Tiendas · Mi tienda',
   description: 'Controlia Tiendas: inventario, pedidos, entregas y cobros en un solo lugar.',
   appleWebApp: { capable: true, title: 'Controlia', statusBarStyle: 'default' },
-  icons: { icon: '/favicon.svg', apple: '/icons/apple-touch-icon.png' },
+  icons: { icon: '/favicon.png', apple: '/icons/apple-touch-icon.png' },
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#f6f5f1' };
 export default function RootLayout({ children }: { children: React.ReactNode }) {

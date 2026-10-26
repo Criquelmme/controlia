@@ -13,7 +13,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<Re
   const errors: Record<string, string> = { credenciales: 'Correo o contraseña incorrectos.', limite: 'Demasiados intentos. Espera unos minutos y vuelve a intentar.', configuracion: 'El acceso todavía no está configurado. Contacta con administración.', conexion: 'No pudimos conectar. Intenta nuevamente.' };
   const message = typeof query.error === 'string' ? errors[query.error] : undefined;
   return <main className="login-page"><section className="login-card" aria-labelledby="login-title">
-    <span className="brand-mark" aria-hidden="true">c<span>·</span></span><div className="eyebrow">CONTROLIA TIENDAS · ACCESO PRIVADO</div>
+    <div className="login-logo" role="img" aria-label="Controlia Tiendas" /><div className="eyebrow">ACCESO PRIVADO</div>
     <h1 id="login-title">Tu tienda empieza<br />con un acceso seguro.</h1><p>Inicia sesión para acceder a tu espacio privado.</p>
     {message && <div className="form-error" role="alert">{message}</div>}
     {!configured ? <div className="form-error">El acceso todavía no está configurado. Contacta con administración.</div> : provider === 'sites' ? <a className="btn primary login-button" href={chatGPTSignInPath('/')} target="_top"><LockKeyhole size={17} /> Iniciar sesión con ChatGPT <ArrowRight size={16} /></a> : <form action="/auth/login" method="post" className="login-form">
