@@ -1,4 +1,6 @@
 // Server-only runtime bindings. Never import this module from a client component.
+export const sessionCookieMaxAge = 30 * 24 * 60 * 60;
+
 export async function runtimeValue(name: string): Promise<string> {
   const local = process.env[name];
   if (local) return local;

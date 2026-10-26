@@ -17,6 +17,7 @@ En el Dashboard de Supabase:
 - Habilita el proveedor de correo y contraseña en Authentication.
 - Desactiva los registros públicos y el acceso anónimo para esta tienda de una administradora.
 - Crea tu usuario desde **Authentication → Users → Add user**, usando tu correo y una contraseña propia de al menos 12 caracteres. Si se exige confirmación de correo, confirma la cuenta o usa el mecanismo administrativo de confirmación del Dashboard.
+- Esa primera cuenta es la propietaria y administradora de la tienda. Después de iniciar sesión puede abrir **Usuarios** y crear accesos con contraseña inicial; las nuevas cuentas comparten sus datos. Cambia o entrega la contraseña inicial de forma segura.
 - En URL Configuration, establece Site URL como el origen HTTPS de la aplicación cuando esté publicada. Para desarrollo usa `http://127.0.0.1:5173`.
 
 `supabase/config.toml` configura el entorno **local** de Supabase; no cambia automáticamente las opciones de un proyecto alojado. La app no ofrece registro público. Tampoco incluye un flujo de recuperación de contraseña en esta versión; la gestión inicial de usuarios se realiza desde el Dashboard.
@@ -80,5 +81,6 @@ Si se publica mediante un Site que conserva acceso privado de ChatGPT, la plataf
 - RLS permite lecturas propias y bloquea lecturas anónimas. Los permisos SQL bloquean escrituras directas de clientes.
 - La escritura de pedidos, reservas, entregas y pagos sigue siendo atómica, con comparación de versión y reintentos idempotentes.
 - Las páginas, respuestas de negocio y sesiones no se almacenan en caché.
+- Las cookies de sesión duran 30 días y se renuevan al verificar la sesión; cerrar sesión o revocar el acceso invalida la sesión.
 
 Referencias oficiales: [SSR y cookies](https://supabase.com/docs/guides/auth/server-side/creating-a-client?framework=nextjs), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [claves API](https://supabase.com/docs/guides/getting-started/api-keys), [configuración CLI](https://supabase.com/docs/guides/local-development/cli/config).

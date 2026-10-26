@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { ShoppingBag, Search, X, ArrowRight, ChevronRight } from 'lucide-react';
-import { missing, today, type Order, type Shop } from './domain';
-export type View = 'home' | 'orders' | 'inventory' | 'clients' | 'supplies' | 'payments';
+import { ShoppingBag, Search, X, ChevronRight } from 'lucide-react';
+import { missing, refunded, today, type Order, type Shop } from './domain';
+export type View = 'home' | 'orders' | 'inventory' | 'clients' | 'supplies' | 'payments' | 'users';
 export type Modal = { type: string; entity?: string; extra?: string; requestId: string };
 export type Open = (type: string, entity?: string, extra?: string) => void;
 export const money = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
@@ -9,8 +9,8 @@ export const formatDate = (s?: string) => s ? new Intl.DateTimeFormat('es-CL', {
 export const orderNumber = (o: Order) => `#${String(o.number).padStart(4, '0')}`;
 export const customer = (shop: Shop, id: string) => shop.clients.find(c => c.id === id)?.name ?? 'Cliente';
 export function Badge({ tone = 'neutral', children }: { tone?: string; children: ReactNode }) { return <span className={`badge ${tone}`}><span />{children}</span>; }
-export function DeliveryBadge({ order: o }: { order: Order }) { return o.status === 'cancelled' ? <Badge>Cancelado</Badge> : o.status === 'delivered' ? <Badge tone="green">Entregado</Badge> : missing(o) ? <Badge tone="amber">Faltan {missing(o)} prendas</Badge> : <Badge tone="blue">Listo para entregar</Badge>; }
-export function PaymentBadge({ order: o }: { order: Order }) { return o.paidAt ? <Badge tone="green">Pagado</Badge> : o.dueDate < today() ? <Badge tone="red">Vencido</Badge> : <Badge tone="amber">Por cobrar</Badge>; }
+export function DeliveryBadge({ order: o }: { order: Order }) { return o.status === 'cancelled' ? <Badge>Cancelado</Badge> : o.status === 'delivered' ? <Badge tone="green">Entregado</Badge> : missing(o) ? <Badge tone="amber">Faltan {missing(o)} prendas</Badge> : o.lines.some(l => (l.delivered ?? 0) > 0) ? <Badge tone="blue">Parcial · listo para completar</Badge> : <Badge tone="blue">Listo para entregar</Badge>; }
+export function PaymentBadge({ order: o }: { order: Order }) { const totalRefunded = refunded(o); return totalRefunded >= o.total ? <Badge tone="neutral">Reembolsado</Badge> : totalRefunded ? <Badge tone="amber">Reembolso parcial</Badge> : o.paidAt ? <Badge tone="green">Pagado</Badge> : o.dueDate < today() ? <Badge tone="red">Vencido</Badge> : <Badge tone="amber">Por cobrar</Badge>; }
 export function Empty({ icon = <ShoppingBag />, title, text, action }: { icon?: ReactNode; title: string; text: string; action?: ReactNode }) { return <div className="empty"><div className="empty-icon">{icon}</div><h3>{title}</h3><p>{text}</p>{action}</div>; }
 export function Field({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) { return <label className={`field ${wide ? 'wide' : ''}`}><span>{label}</span>{children}</label>; }
 export function Toolbar({ search, setSearch, placeholder, children }: { search: string; setSearch: (s: string) => void; placeholder: string; children?: ReactNode }) { return <div className="toolbar"><div className="search"><Search size={17} /><input aria-label={placeholder} placeholder={placeholder} value={search} onChange={e => setSearch(e.target.value)} />{search && <button className="icon-btn" aria-label="Limpiar búsqueda" onClick={() => setSearch('')}><X size={14} /></button>}</div>{children}</div>; }

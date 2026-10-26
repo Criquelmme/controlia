@@ -1,4 +1,4 @@
-# Hilo · Guía de uso y configuración
+# Controlia Tiendas · Guía de uso y configuración
 
 Consulta [README.md](README.md) para las funciones y el inicio rápido.
 

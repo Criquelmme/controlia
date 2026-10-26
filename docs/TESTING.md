@@ -8,7 +8,7 @@ npm run typecheck
 npm run build
 ```
 
-Incluyen 15 escenarios de negocio y 9 pruebas del SQL en PostgreSQL/PGlite: migración válida, RLS, lectura por propietario, denegación anónima, bloqueo de escrituras directas, control de versión, propietario inmutable y datos inválidos. PGlite reemplaza únicamente la infraestructura de prueba; la aplicación utiliza Supabase.
+Incluyen escenarios de negocio para reservas, entregas parciales, devoluciones y reembolsos, además de pruebas del SQL en PostgreSQL/PGlite: migración válida, RLS, lectura por propietario, denegación anónima, bloqueo de escrituras directas, control de versión, propietario inmutable y datos inválidos. PGlite reemplaza únicamente la infraestructura de prueba; la aplicación utiliza Supabase.
 
 ## Integración de Supabase en entorno desechable
 
@@ -35,7 +35,7 @@ Si el runtime de tu plataforma no hereda esas variables, escríbelas solo en una
 npm run test:supabase-api
 ```
 
-El fixture HTTP simula Auth y PostgREST y ejecuta las consultas sobre PostgreSQL/PGlite con la migración real. Comprueba login, cookies HttpOnly, renovación, datos por usuario, dos escrituras concurrentes, entrega, pago único, encargos y logout. Es un fixture, no sustituye una verificación final contra tu proyecto alojado de Supabase.
+El fixture HTTP simula Auth y PostgREST y ejecuta las consultas sobre PostgreSQL/PGlite con la migración real. Comprueba login, cookies persistentes HttpOnly, renovación, creación de usuarios compartidos y denegación a colaboradores para administrar usuarios, datos aislados, escrituras concurrentes, entregas, pagos y logout. Es un fixture, no sustituye una verificación final contra tu proyecto alojado de Supabase.
 
 Solo para inspección manual de este fixture, el usuario es `owner@example.test` y la contraseña es `local-password-only`. No son credenciales de producción. El fixture solo escucha en loopback, no se utiliza desde la aplicación desplegada y sus datos se descartan al detenerlo.
 

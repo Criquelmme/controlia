@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import './login.css';
 export const metadata: Metadata = {
-  title: 'Hilo · Mi tienda',
-  description: 'Tu tienda de ropa, en orden. Inventario, pedidos, entregas y cobros en un solo lugar.',
-  appleWebApp: { capable: true, title: 'Hilo', statusBarStyle: 'default' },
+  title: 'Controlia Tiendas · Mi tienda',
+  description: 'Controlia Tiendas: inventario, pedidos, entregas y cobros en un solo lugar.',
+  appleWebApp: { capable: true, title: 'Controlia', statusBarStyle: 'default' },
   icons: { icon: '/favicon.svg', apple: '/icons/apple-touch-icon.png' },
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#f6f5f1' };

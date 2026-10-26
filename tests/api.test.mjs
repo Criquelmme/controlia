@@ -17,7 +17,7 @@ check((await send('client.save',{name:'Blocked'},undefined,'https://other.exampl
 const clientResponse=await send('client.save',{name:'Prueba API '+Date.now(),phone:'',notes:'Solo entorno local'});
 check(clientResponse.status===200,'client creation persisted');
 const clientId=clientResponse.shop.clients.at(-1).id;
-let r=await send('variant.create',{name:'Prenda API '+Date.now(),size:'Única',color:'Azul',price:10000,stock:2});
+let r=await send('variant.create',{name:'Prenda API '+Date.now(),size:'Única',color:'Azul',purchasePrice:10000,profitPercent:0,stock:2});
 check(r.status===200,'variant creation persisted');
 const variantId=r.shop.variants.at(-1).id;
 const orderPayload={clientId,lines:[{variantId,quantity:2}],paymentMode:'later',method:'transfer',dueDate:'2099-01-01'};

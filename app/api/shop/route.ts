@@ -7,7 +7,7 @@ const json = (body: unknown, status = 200) => Response.json(body, { status, head
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return json({ error: 'Inicia sesión para ver tu tienda.' }, 401);
-  try { return json(await readShop(user.userId)); } catch (error) { console.error('Shop read failed', error); return json({ error: 'No se pudo cargar la tienda. Intenta nuevamente.' }, 503); }
+  try { return json(await readShop(user.shopOwnerId)); } catch (error) { console.error('Shop read failed', error); return json({ error: 'No se pudo cargar la tienda. Intenta nuevamente.' }, 503); }
 }
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -24,10 +24,10 @@ export async function POST(request: Request) {
   } catch { return json({ error: 'Solicitud inválida.' }, 400); }
   try {
     for (let attempt = 0; attempt < 5; attempt++) {
-      const current = await readShop(user.userId);
+      const current = await readShop(user.shopOwnerId);
       const next = applyCommand(current.shop, command);
       if (next === current.shop) return json(current);
-      if (await writeShop(user.userId, current.version, next)) return json({ shop: next, version: current.version + 1 });
+      if (await writeShop(user.shopOwnerId, current.version, next)) return json({ shop: next, version: current.version + 1 });
     }
     return json({ error: 'La tienda cambió desde otro dispositivo. Actualiza e intenta nuevamente.' }, 409);
   } catch (error) {

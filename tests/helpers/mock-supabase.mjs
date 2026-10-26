@@ -4,7 +4,7 @@ import http from 'node:http';
 import { createDatabase,asRole,ownerA,ownerB } from './postgres.mjs';
 const db=await createDatabase(),tokens=new Map(),refreshes=new Map();let issued=0,refreshCount=0;
 const users=[{id:ownerA,email:'owner@example.test'},{id:ownerB,email:'other@example.test'}];
-const user=(u)=>({...u,aud:'authenticated',role:'authenticated',created_at:new Date().toISOString(),app_metadata:{provider:'email',providers:['email']},user_metadata:{},identities:[]});
+const user=(u)=>({...u,aud:'authenticated',role:'authenticated',created_at:new Date().toISOString(),app_metadata:{provider:'email',providers:['email'],...(u.app_metadata||{})},user_metadata:{},identities:[]});
 function session(u,refresh=false){
   const expiresIn=refresh?3600:15,exp=Math.floor(Date.now()/1000)+expiresIn;
   const access=[Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url'),Buffer.from(JSON.stringify({sub:u.id,email:u.email,role:'authenticated',aud:'authenticated',exp,iat:Math.floor(Date.now()/1000)})).toString('base64url'),'local-only-'+(++issued)].join('.');
@@ -19,6 +19,12 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname==='/__test-state')return json({refreshCount});
     let body='';for await(const part of req){body+=part;if(body.length>2000000)throw new Error('Oversized fixture request');}
     const input=body?JSON.parse(body):{};
+    if(url.pathname==='/auth/v1/admin/users'&&req.method==='POST'&&req.headers.apikey==='local-secret-test-key'){
+      if(users.some(existing=>existing.email===input.email))return json({code:'email_exists',message:'User already registered'},422);
+      const created={id:crypto.randomUUID(),email:input.email,app_metadata:input.app_metadata||{}};
+      users.push(created);
+      return json(user(created),200);
+    }
     if(url.pathname==='/auth/v1/token'){
       if(url.searchParams.get('grant_type')==='refresh_token'){const u=refreshes.get(input.refresh_token);if(!u)return json({message:'Invalid test refresh token'},400);refreshCount++;return json(session(u,true));}
       const u=users.find(u=>u.email===input.email);
